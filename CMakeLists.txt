@@ -84,6 +84,10 @@ if(TARGET helix_player_tests)
     target_sources(helix_player_tests PRIVATE ${test_embedded})
     target_include_directories(helix_player_tests PRIVATE "${player_generated}")
     target_compile_definitions(helix_player_tests PRIVATE "HELIX_PLAYER_GOLDEN_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/Tests/Golden\"")
+    # The exit scene: its data folder written by hand and the corpus models it uses (files only, no CMake of the corpus).
+    helix_dependency_dir(player_corpus_dir Corpus)
+    target_compile_definitions(helix_player_tests PRIVATE "HELIX_PLAYER_EXIT_DATA=\"${CMAKE_CURRENT_SOURCE_DIR}/Tests/Exit/Data\""
+                               "HELIX_PLAYER_CORPUS_MODELS=\"${player_corpus_dir}/Assets/Models\"")
     # The player executable itself, run by the tests as a process of its own.
     if(HELIX_PLATFORM STREQUAL "windows" OR HELIX_PLATFORM STREQUAL "linux")
         add_dependencies(helix_player_tests helix_player)

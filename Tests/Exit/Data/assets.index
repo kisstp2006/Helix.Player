@@ -1,0 +1,16 @@
+# The exit scene's data folder: every file, its guid and its path (the test adds the corpus models and the shaders).
+7b00a8d134c54057900feb27559e71ad Shaders/HelixPlayer.TestShaders.dll
+5a2fdefaa1d942109cb880c68419db9a Models/wooden_crate_02/wooden_crate_02_1k.gltf
+561991d81cd8489db46c6a1235ec5db0 Models/wooden_crate_02/wooden_crate_02.bin
+d79edbd06a9b4f1faa801dea1ba1d48c Models/wooden_crate_02/textures/wooden_crate_02_diff_1k.jpg
+c6dc363c5a064143970df0c122686a71 Models/wooden_crate_02/textures/wooden_crate_02_arm_1k.jpg
+883103c3bb6e40aeb90bc6adbacc381f Models/wooden_crate_02/textures/wooden_crate_02_nor_gl_1k.jpg
+adbc69a2fc59479ab01eeca2e148e970 Models/Suzanne/Suzanne.gltf
+18413a74125147e68de7c191b46b1ea1 Models/Suzanne/Suzanne.bin
+56c4c2427b3d446499c84ed4c3b5e0e5 Models/Suzanne/Suzanne_BaseColor.png
+e765d9940b244d5a8dd99f01ce495f4d Models/Suzanne/Suzanne_MetallicRoughness.png
+257a375845af4b09b6cd797b02615bd4 Models/BoxVertexColors.glb
+33b6d3ef98864e26b7519238ae416c96 Materials/Crate.mat
+68137e36c09e418fa9a10c8ee25a88a5 Materials/Suzanne.mat
+0f0de7f545294355bbb26fc1fab7ec4f Materials/VertexColor.mat
+9c4f1e2a7b3d4c5e8f6a1b2c3d4e5f60 Scenes/Exit.helix

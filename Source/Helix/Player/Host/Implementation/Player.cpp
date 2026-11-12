@@ -288,16 +288,22 @@ namespace helix::player
 
     void Player::ReportScreen(bool displaysChanged)
     {
-        if (displaysChanged || displaysDirty_)
+        u32 display = window_ ? window_->GetDisplay() : 0;
+        // The displays and the modes of the window's display only when something may have changed them (asking the
+        // system for the modes takes milliseconds).
+        if (displaysChanged || displaysDirty_ || display != modesDisplay_)
         {
             if (platform::Window::IsSupported())
                 platform::GetDisplays(displays_);
+            modes_.Clear();
+            if (display < displays_.Size())
+                platform::GetDisplayModes(display, modes_);
+            modesDisplay_ = display;
             displaysDirty_ = false;
         }
         ScreenReport r;
         r.width = i32(width_);
         r.height = i32(height_);
-        u32 display = window_ ? window_->GetDisplay() : 0;
         r.display = display;
         if (window_)
         {
@@ -320,9 +326,7 @@ namespace helix::player
             const platform::DisplayInfo& d = displays_[display];
             if (r.dpi == 0)
                 r.dpi = d.dpi;
-            Array<platform::DisplayMode> modes;
-            platform::GetDisplayModes(display, modes);
-            for (const platform::DisplayMode& m : modes)
+            for (const platform::DisplayMode& m : modes_)
                 r.resolutions.Push({m.width, m.height, {m.refreshNumerator, m.refreshDenominator}});
             // Windowed, the current resolution is the window's; full screen, the display's.
             bool full = r.fullScreenMode == FullScreenMode::FullScreenWindow || r.fullScreenMode == FullScreenMode::ExclusiveFullScreen;

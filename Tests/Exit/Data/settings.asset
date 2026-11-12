@@ -1,0 +1,13 @@
+%YAML 1.1
+%TAG !h! tag:helixengine,2026:
+--- !h!129 &1
+PlayerSettings:
+  companyName: Helix
+  productName: Exit Scene
+  bundleVersion: 1.0
+  applicationIdentifier: org.helix.exitscene
+  runInBackground: 1
+--- !h!141 &2
+BuildSettings:
+  scenes:
+  - Scenes/Exit.helix

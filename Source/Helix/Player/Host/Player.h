@@ -55,6 +55,8 @@ namespace helix::player
         u32 width_ = 0, height_ = 0;
         Array<platform::Event> events_;
         Array<platform::DisplayInfo> displays_;
+        Array<platform::DisplayMode> modes_;
+        u32 modesDisplay_ = ~0u;
         bool displaysDirty_ = true;
         bool started_ = false;
         bool quit_ = false;
