@@ -1,4 +1,3 @@
-#include <Helix/Player/Host/Implementation/HostPlatform.h>
 #include <Helix/Player/Host/Player.h>
 
 #include <Helix/Core/Logging/Log.h>
@@ -13,7 +12,11 @@
 #include <Helix/Engine/Time/Time.h>
 #include <Helix/Engine/Transform/Transform.h>
 #include <Helix/Jobs/Jobs.h>
+#include <Helix/Platform/System/Process.h>
 #include <Helix/Platform/Time/Time.h>
+#if HX_PLATFORM_ANDROID
+#include <Helix/Platform/Window/Android.h>
+#endif
 
 namespace helix::player
 {
@@ -112,7 +115,7 @@ namespace helix::player
         exitCode_ = 0;
         frames_ = 0;
         if (options_.waitForNativeDebugger)
-            host::WaitForNativeDebugger();
+            platform::WaitForNativeDebugger();
         Application::SetBatchMode(options_.batchMode);
 
         // The data folder first: its settings name the product, and with it where the log goes.
@@ -140,13 +143,12 @@ namespace helix::player
 
         if (options_.singleInstance)
         {
-            if (!host::AcquireSingleInstance(Application::productName()))
+            if (!instance_.Acquire(Format("Player.{}.{}", Application::companyName(), Application::productName())))
             {
                 HX_LOG_INFO(PlayerLogChannel, "-single-instance: another instance runs.");
                 quit_ = true;
                 return false;
             }
-            singleInstance_ = true;
         }
         jobs_ = !jobs::IsInitialized() && jobs::Initialize();
 
@@ -380,9 +382,9 @@ namespace helix::player
             Screen::FinishWindowMove(r.moveOperation);
         }
         if (r.sleepTimeout)
-            host::SetKeepScreenOn(r.sleepTimeoutValue == SleepTimeout::NeverSleep);
+            platform::SetKeepScreenOn(r.sleepTimeoutValue == SleepTimeout::NeverSleep);
         if (r.orientation)
-            host::SetOrientation(i32(r.orientationValue));
+            platform::SetDisplayOrientation(platform::DisplayOrientation(u8(r.orientationValue)));
         // Brightness and the screen's MSAA stay as reported: the desktop systems and the swap chain have neither.
     }
 
@@ -427,7 +429,9 @@ namespace helix::player
                 DestroyDevice();
             if (!device_ && now.window)
                 CreateDevice();
-            host::AcknowledgeWindow(device_ ? deviceWindow_.window : nullptr);
+#if HX_PLATFORM_ANDROID
+            platform::android::AcknowledgeNativeWindow(device_ ? static_cast<ANativeWindow*>(deviceWindow_.window) : nullptr);
+#endif
         }
         UpdateTarget();
         ReportScreen(false);
@@ -492,11 +496,7 @@ namespace helix::player
             jobs::Shutdown();
             jobs_ = false;
         }
-        if (singleInstance_)
-        {
-            host::ReleaseSingleInstance();
-            singleInstance_ = false;
-        }
+        instance_.Release();
         log_.Close();
         displays_.Clear();
         displaysDirty_ = true;

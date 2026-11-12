@@ -12,10 +12,8 @@ scene and runs every frame through the engine's player loop.
 | `Source/Helix/Player/Data/DataFolder.h` | `DataFolder` (index, settings, scenes), `DefaultDataFolder`, `PlayerSceneSource` |
 | `Source/Helix/Player/Host/Player.h` | `Player` (`Start`, `Frame`, `Shutdown`), `RunPlayer` |
 | `Source/Helix/Player/Log/PlayerLog.h` | `PlayerLog`: the log file or standard output, with optional timestamps |
-| `Source/Helix/Player/Host/Platform/<Os>/` | What the host needs of the system: single instance, waiting for a debugger, keeping the screen on |
-| `Source/Helix/Player/Platform/<Os>/PlayerMain*.cpp` | The entry points: `wWinMain` (Windows), `main` (Linux, Web), the JNI methods (Android) |
-| `Android/` | The Java activity (`HelixActivity`), the manifest template and the APK build with the SDK's tools |
-| `Web/` | The loader that fetches the data folder before `main` and the HTML template |
+| `Source/Helix/Player/Platform/<Os>/PlayerMain*.cpp` | The entry points: `wWinMain` (Windows), `main` (Linux, Web), `HelixMain` with the APK's assets as the data folder (Android) |
+| `Web/Templates/Default.html` | The page: the canvas and the data folder the loader fetches (`Module.helixPreload`) |
 | `Tests/` | Command line, data folder and player runs on every device (in process and as the executable) against `Tests/Golden` |
 
 ## Data folder
@@ -53,7 +51,7 @@ The reference player's arguments that apply:
 
 Development arguments of Helix: `-dataFolder <path>`, `-scene <path>` (a scene file, from the catalog or disk),
 `-frames N` (quit after N frames) and `-screenshot <png>` (of the last frame). Other arguments are left for scripts.
-On Android the arguments come from the intent (`am start -n org.helix.player/.HelixActivity -e args "-frames 100"`),
+On Android the arguments come from the intent (`am start -n org.helix.player/org.helix.platform.HelixActivity -e args "-frames 100"`),
 on the Web from the address (`HelixPlayer.html?args=-frames%20100`).
 
 ## The frame
@@ -66,6 +64,14 @@ at the end of the frame. Without focus the frames pause unless `runInBackground`
 default). On Android the graphics device follows the activity's surface: it goes when the surface goes and comes
 back with the next one.
 
+## Platforms
+
+What belongs to the system comes from Helix.Platform: one instance per product, waiting for a debugger, keeping the
+screen on, the orientation, and the applications of Android and the Web. On Android `helix_add_android_app` makes
+libHelixPlayer.so an application (its activity runs `HelixMain`, the APK is built with the SDK's tools and carries
+the data folder under its assets' `Data/`); on the Web `helix_add_web_app` makes the page from the template, and the
+loader fetches the data folder before `main`.
+
 ## Build
 
 ```
@@ -77,8 +83,7 @@ ctest --preset windows-debug
 ```
 
 The .NET SDK builds the engine's C# shaders (set `HELIX_DOTNET_ROOT` or have `dotnet` on the path). Linux needs
-`libx11-dev`. The APK is built when `ANDROID_HOME` has build tools and a platform and a JDK is found (`JAVA_HOME`);
-it is signed with a debug key made in the build folder.
+`libx11-dev`. The APK is built when `ANDROID_HOME` has build tools and a platform and a JDK is found (`JAVA_HOME`).
 
 ## License
 

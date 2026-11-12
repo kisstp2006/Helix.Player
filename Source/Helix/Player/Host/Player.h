@@ -4,6 +4,7 @@
 #include <Helix/Player/CommandLine/CommandLine.h>
 #include <Helix/Player/Data/DataFolder.h>
 #include <Helix/Player/Log/PlayerLog.h>
+#include <Helix/Platform/System/Process.h>
 #include <Helix/Platform/Window/Window.h>
 #include <Helix/RHI/Device/Device.h>
 
@@ -57,7 +58,7 @@ namespace helix::player
         bool displaysDirty_ = true;
         bool started_ = false;
         bool quit_ = false;
-        bool singleInstance_ = false;
+        platform::SingleInstance instance_;
         bool jobs_ = false;
         i32 exitCode_ = 0;
         u64 frames_ = 0;

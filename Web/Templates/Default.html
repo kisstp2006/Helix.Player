@@ -20,7 +20,15 @@
       print: function (text) { console.log(text); },
       printErr: function (text) { console.error(text); statusElement.textContent = text; },
       setStatus: function (text) { statusElement.textContent = text; },
-      onRuntimeInitialized: function () { statusElement.textContent = ''; }
+      onRuntimeInitialized: function () { statusElement.textContent = ''; },
+      // The data folder next to the page (?data=<URL> replaces it), fetched into /Data before main.
+      helixPreload: {
+        url: 'Data',
+        mount: '/Data',
+        files: ['settings.asset'],
+        lists: ['assets.index'],
+        companions: { '.dll': '.pdb' }
+      }
     };
   </script>
   {{{ SCRIPT }}}
