@@ -101,9 +101,10 @@ namespace helix::player::testing
         const Vector3 normals[] = {{1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};
         for (const Vector3& n : normals)
         {
-            // Two axes across the face, ordered so the triangles wind clockwise seen from outside.
+            // Two axes across the face, ordered so the triangles wind clockwise seen from outside (the front faces of
+            // the engine, as of the reference).
             Vector3 a = std::fabs(n.y) > 0.5f ? Vector3(1, 0, 0) : Vector3(0, 1, 0);
-            Vector3 b = Vector3::Cross(n, a);
+            Vector3 b = Vector3::Cross(a, n);
             i32 base = i32(v.Size());
             v.Push((n - a - b) * 0.5f);
             v.Push((n - a + b) * 0.5f);

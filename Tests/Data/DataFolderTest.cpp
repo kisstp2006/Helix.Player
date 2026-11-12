@@ -77,3 +77,20 @@ HX_TEST(DataFolder, IndexSettingsAndScenes)
     engine::SceneManager::SetBuildScenes(Span<const StringView>());
     engine::Application::SetProductInfo("DefaultCompany", "Product", "0.1", "com.DefaultCompany.Product");
 }
+
+HX_TEST(DataFolder, TheTestCubeFacesOutward)
+{
+    // Normals from the winding point away from the center: the faces are clockwise seen from outside.
+    engine::Mesh* cube = MakeCube();
+    Array<Vector3> vertices, normals;
+    for (const Vector3& v : cube->vertices())
+        vertices.Push(v);
+    for (const Vector3& n : cube->normals())
+        normals.Push(n);
+    HX_REQUIRE(vertices.Size() == 24 && normals.Size() == 24);
+    bool outward = true;
+    for (usize i = 0; i < vertices.Size(); i++)
+        outward = outward && Vector3::Dot(vertices[i], normals[i]) > 0.4f;
+    HX_CHECK(outward);
+    DestroyEverything();
+}

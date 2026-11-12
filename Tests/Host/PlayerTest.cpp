@@ -30,6 +30,21 @@ namespace
         Array<String> args;
     };
 
+#if HX_PLATFORM_WINDOWS || HX_PLATFORM_LINUX
+    // A device of the backend and adapter can be made here (CI machines list OpenGL without a usable driver).
+    bool CanCreate(rhi::Backend backend, i32 adapter, bool warp = false)
+    {
+        rhi::Device* d = rhi::Device::Create({.backend = backend, .adapter = adapter, .warp = warp, .vsync = false});
+        if (!d)
+        {
+            std::printf("    no %s device here, skipped\n", backend == rhi::Backend::D3D11 ? "D3D11" : "OpenGL");
+            return false;
+        }
+        rhi::Device::Destroy(d);
+        return true;
+    }
+#endif
+
     Array<DeviceArguments> Devices()
     {
         Array<DeviceArguments> out;
@@ -37,27 +52,29 @@ namespace
         char name[128];
         for (u32 i = 0; rhi::Device::AdapterName(rhi::Backend::D3D11, i, name, sizeof(name)); i++)
         {
+            if (!CanCreate(rhi::Backend::D3D11, i32(i)))
+                continue;
             DeviceArguments d{"D3D11", Array<String>()};
             d.args.Push(String("-force-d3d11"));
             d.args.Push(String("-force-device-index"));
             d.args.Push(Format("{}", i));
             out.Push(Move(d));
         }
-        if (out.Empty())
+        if (out.Empty() && CanCreate(rhi::Backend::D3D11, -1, true))
         {
             DeviceArguments d{"D3D11 WARP", Array<String>()};
             d.args.Push(String("-force-d3d11"));
             d.args.Push(String("-force-driver-type-warp"));
             out.Push(Move(d));
         }
-        if (rhi::Device::IsBackendAvailable(rhi::Backend::OpenGL))
+        if (rhi::Device::IsBackendAvailable(rhi::Backend::OpenGL) && CanCreate(rhi::Backend::OpenGL, -1))
         {
             DeviceArguments d{"OpenGL", Array<String>()};
             d.args.Push(String("-force-glcore"));
             out.Push(Move(d));
         }
 #elif HX_PLATFORM_LINUX
-        if (rhi::Device::IsBackendAvailable(rhi::Backend::OpenGL))
+        if (rhi::Device::IsBackendAvailable(rhi::Backend::OpenGL) && CanCreate(rhi::Backend::OpenGL, -1))
             out.Push(DeviceArguments{"OpenGL", Array<String>()});
 #endif
         return out;
