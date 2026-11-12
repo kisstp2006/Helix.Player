@@ -49,3 +49,6 @@
 [submodule "External/Helix.Corpus"]
 	path = External/Helix.Corpus
 	url = https://github.com/kisstp2006/Helix.Corpus
+[submodule "External/Helix.Scripting"]
+	path = External/Helix.Scripting
+	url = https://github.com/kisstp2006/Helix.Scripting
