@@ -4,13 +4,14 @@
 #include <Helix/Player/CommandLine/CommandLine.h>
 #include <Helix/Player/Data/DataFolder.h>
 #include <Helix/Player/Log/PlayerLog.h>
+#include <Helix/Player/Scripts/PlayerScripts.h>
 #include <Helix/Platform/System/Process.h>
 #include <Helix/Platform/Window/Window.h>
 #include <Helix/RHI/Device/Device.h>
 
-// The player: the data folder, the log, a window and a graphics device from the command line, and the frame: events
-// to the engine, Application::RunFrame through the player loop, Present, then what scripts asked of the Screen.
-// -batchmode draws into a texture without a window, -nographics runs without a device.
+// The player: the data folder and its scripts, the log, a window and a graphics device from the command line, and the
+// frame: events to the engine, Application::RunFrame through the player loop, Present, then what scripts asked of the
+// Screen. -batchmode draws into a texture without a window, -nographics runs without a device.
 namespace helix::player
 {
     class Player
@@ -35,6 +36,7 @@ namespace helix::player
         platform::Window* Window() const { return window_; }
         rhi::Device* Device() const { return device_; }
         const DataFolder& Data() const { return data_; }
+        const PlayerScripts& Scripts() const { return scripts_; }
 
     private:
         bool CreateDevice();
@@ -46,6 +48,7 @@ namespace helix::player
 
         PlayerOptions options_;
         DataFolder data_;
+        PlayerScripts scripts_;
         PlayerLog log_;
         platform::Window* window_ = nullptr;
         platform::NativeWindowHandle deviceWindow_{};

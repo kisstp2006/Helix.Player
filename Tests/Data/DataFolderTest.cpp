@@ -2,6 +2,7 @@
 
 #include <Helix/Engine/Application/Application.h>
 #include <Helix/Engine/Scene/SceneManager.h>
+#include <Helix/Platform/Time/Time.h>
 #include <Helix/Player/Data/DataFolder.h>
 #include <Helix/Testing/Test.h>
 
@@ -56,10 +57,13 @@ HX_TEST(DataFolder, IndexSettingsAndScenes)
     // The scene by its id: its cubes come with their mesh and materials.
     engine::AsyncOperation op = engine::SceneManager::LoadSceneAsync(engine::LoadableSceneId{test.sceneGuid}, {engine::LoadSceneMode::Additive});
     HX_REQUIRE(op.IsValid());
+    // The IO thread reads the files: up to 10 s for a loaded machine.
     for (int i = 0; i < 10000 && !op.isDone(); i++)
     {
         engine::ProcessAssetLoads();
         engine::SceneManager::ProcessSceneLoads();
+        if (!op.isDone())
+            platform::SleepSeconds(0.001);
     }
     HX_REQUIRE(op.isDone());
     engine::Scene level = engine::SceneManager::GetSceneByLoadableSceneId(engine::LoadableSceneId{test.sceneGuid});

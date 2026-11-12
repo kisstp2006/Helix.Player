@@ -194,6 +194,9 @@ namespace helix::player
             HX_LOG_WARNING(PlayerLogChannel, "-nographics applies with -batchmode; the window opens without drawing.");
         ReportScreen(true);
 
+        // The scripts of the data folder (C++ game modules, C# assemblies) before a scene can name them.
+        scripts_.Start(root);
+
         // The scene to run: -scene, else the first of the build.
         if (!options_.scene.Empty())
             SceneManager::LoadScene(options_.scene);
@@ -488,6 +491,8 @@ namespace helix::player
         // The engine back to its state at startup, so a process can run the player again.
         SceneManager::Reset();
         DestroyAllObjects();
+        // The modules and the C# side once their scripts are gone.
+        scripts_.Stop();
         ResetAssets();
         data_.Close();
         Shader::Globals().Clear();

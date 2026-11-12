@@ -12,9 +12,10 @@ scene and runs every frame through the engine's player loop.
 | `Source/Helix/Player/Data/DataFolder.h` | `DataFolder` (index, settings, scenes), `DefaultDataFolder`, `PlayerSceneSource` |
 | `Source/Helix/Player/Host/Player.h` | `Player` (`Start`, `Frame`, `Shutdown`), `RunPlayer` |
 | `Source/Helix/Player/Log/PlayerLog.h` | `PlayerLog`: the log file or standard output, with optional timestamps |
+| `Source/Helix/Player/Scripts/PlayerScripts.h` | `PlayerScripts`: the data folder's C++ game modules and C# assemblies, `BuildGameModules` |
 | `Source/Helix/Player/Platform/<Os>/PlayerMain*.cpp` | The entry points: `wWinMain` (Windows), `main` (Linux, Web), `HelixMain` with the APK's assets as the data folder (Android) |
 | `Web/Templates/Default.html` | The page: the canvas and the data folder the loader fetches (`Module.helixPreload`) |
-| `Tests/` | Command line, data folder and player runs on every device (in process and as the executable) against `Tests/Golden` |
+| `Tests/` | Command line, data folder and player runs on every device (in process and as the executable) against `Tests/Golden`; a data folder with a C# and a C++ script (`Tests/Scripts`) |
 
 ## Data folder
 
@@ -27,7 +28,22 @@ A data folder holds the files of the game and two more:
 
 It is found next to the executable as `<executable name>_Data` (`HelixPlayer_Data`), as `Data/` next to the page on
 the Web (or `?data=<URL>`), and in the APK's assets as `Data/` on Android. Configure with
-`-DHELIX_PLAYER_DATA=<folder>` to copy one there with the build.
+`-DHELIX_PLAYER_DATA=<folder>` to copy one there with the build (with the engine's assemblies in its `Managed/`).
+
+## Scripts
+
+Scripts load before the first scene, so its GameBehaviours find their classes:
+
+- `Modules/`: C++ game modules, shared libraries against the shared engine (`HelixEngine.dll` / `libHelixEngine.so`
+  next to the player, which the player links too), loaded on Windows and Linux. On Android and the Web the build
+  names the modules (`-DHELIX_PLAYER_GAME_MODULES=<targets>`): the APK carries them with the engine and the C++
+  runtime, the Web links them into the player.
+- `Managed/`: the engine's assemblies (`HelixEngine.CoreModule.dll`, `Helix.Scripting.Runtime.dll` with its
+  runtimeconfig) and the game's. A game assembly starts the .NET runtime (`dotnet/` next to the player, else
+  `DOTNET_ROOT`, `HELIX_DOTNET_ROOT` or the installed one), the engine's C# side and the assembly's scripts. Android
+  and the Web get their .NET hosts later.
+
+Shutting down destroys the scripts' objects, unloads the modules and stops the C# side.
 
 ## Command line
 
@@ -82,7 +98,7 @@ cmake --build --preset windows-debug
 ctest --preset windows-debug
 ```
 
-The .NET SDK builds the engine's C# shaders (set `HELIX_DOTNET_ROOT` or have `dotnet` on the path). Linux needs
+The .NET SDK builds the engine's C# shaders and assemblies (set `HELIX_DOTNET_ROOT` or have `dotnet` on the path). Linux needs
 `libx11-dev`. The APK is built when `ANDROID_HOME` has build tools and a platform and a JDK is found (`JAVA_HOME`).
 
 ## License
