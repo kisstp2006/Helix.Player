@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);CS8981;CS0649;CS0414</NoWarn>
+    <RootNamespace>HelixPlayer.TestShaders</RootNamespace>
+    <AssemblyName>HelixPlayer.TestShaders</AssemblyName>
+    <Deterministic>true</Deterministic>
+    <DebugType>portable</DebugType>
+    <Optimize>true</Optimize>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
+  <PropertyGroup>
+    <!-- Where the build found the dependencies, else this repo's own submodules. -->
+    <HelixShadersDir Condition="'$(HelixShadersDir)' == ''">$(MSBuildThisFileDirectory)../../External/Helix.Shaders</HelixShadersDir>
+    <HelixEngineDir Condition="'$(HelixEngineDir)' == ''">$(MSBuildThisFileDirectory)../../External/Helix.Engine</HelixEngineDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(HelixShadersDir)/Source/HelixEngine.Shaders/HelixEngine.Shaders.csproj" />
+    <ProjectReference Include="$(HelixEngineDir)/Shaders/HelixEngine.BuiltinShaders.csproj" />
+  </ItemGroup>
+</Project>

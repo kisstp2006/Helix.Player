@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="@HELIX_ANDROID_PACKAGE@"
+    android:versionCode="1" android:versionName="1.0">
+    <uses-sdk android:minSdkVersion="@HELIX_ANDROID_MIN_SDK@" android:targetSdkVersion="@HELIX_ANDROID_TARGET_SDK@" />
+    <uses-feature android:glEsVersion="0x00030000" android:required="true" />
+    <application android:label="@HELIX_ANDROID_LABEL@" android:hasCode="true" android:extractNativeLibs="true">
+        <activity android:name="org.helix.player.HelixActivity" android:exported="true"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|uiMode|density">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
