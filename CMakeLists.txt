@@ -169,6 +169,7 @@ if(TARGET helix_player_tests)
         set(engine_source "${player_engine_dir}/Source")
         helix_bindgen(helix_player_test_module MODULE PlayerTestModule NAMESPACE PlayerTests KIND NativeGame
                       HEADERS "${scripts_dir}/Module/PlayerTestModule.h" INCLUDE_ROOTS "${scripts_dir}" "${engine_source}"
+                      REFERENCE_NAMESPACE HelixEngine
                       REFERENCES "${engine_source}/Helix/Engine/Object/EntityId.h" "${engine_source}/Helix/Engine/Object/Object.h"
                                  "${engine_source}/Helix/Engine/GameObject/GameObject.h" "${engine_source}/Helix/Engine/Script/GameBehaviour.h")
         set(test_scripts_dll "${player_artifacts}/bin/HelixPlayer.TestScripts/release/HelixPlayer.TestScripts.dll")
