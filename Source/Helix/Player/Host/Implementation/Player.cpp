@@ -531,10 +531,20 @@ namespace helix::player
                 HX_LOG_ERROR(PlayerLogChannel, "Command line: {}", e);
 #if HX_PLATFORM_WEB
         // The browser runs the frames after main returns: the player lives on (main returns to the .NET runtime that
-        // called it, which must not be unwound).
+        // called it, which must not be unwound). Batch mode without graphics draws nothing: its frames run in main,
+        // which answers the exit code (a run in node).
         static Run run;
         if (!run.player.Start(options, reader))
             return 1;
+        if (options.batchMode && options.noGraphics)
+        {
+            while (run.player.Frame())
+            {
+            }
+            i32 code = run.player.ExitCode();
+            run.player.Shutdown();
+            return code;
+        }
         platform::RunMainLoop(&RunFrame, &run, true);
         return 0;
 #else

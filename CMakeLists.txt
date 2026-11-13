@@ -62,6 +62,8 @@ ${module_body}
 
 add_library(helix_player_core STATIC ${player_sources} ${player_headers} "${player_generated}/PlayerGameModules.cpp")
 add_library(Helix::PlayerCore ALIAS helix_player_core)
+# What helix_require(Player) finds (repos that build the player beside theirs).
+add_library(Helix::Player ALIAS helix_player_core)
 target_include_directories(helix_player_core PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Source>)
 # The engine: the shared HelixEngine where game modules are loaded at run time (they use the player's engine), linked
 # in on the Web.

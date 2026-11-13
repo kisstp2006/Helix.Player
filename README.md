@@ -93,7 +93,8 @@ screen on, the orientation, and the applications of Android and the Web. On Andr
 libHelixPlayer.so an application (its activity runs `HelixMain`, the APK is built with the SDK's tools and carries
 the data folder under its assets' `Data/`); on the Web the player is linked into the .NET runtime's module
 (Helix.Scripting's web apps), published with the page in `helix_player.Web/publish/wwwroot`, and the loader fetches the
-data folder before `main`; its frames run on the browser's loop after `main` returns.
+data folder before `main`; its frames run on the browser's loop after `main` returns (batch mode without graphics runs them in
+`main`, so a run in node ends with the player's exit code).
 
 ## Build
 
