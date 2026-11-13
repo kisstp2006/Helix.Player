@@ -76,7 +76,7 @@ helix_apply_options(helix_player_core)
 # runtime's files of its assembly.
 get_filename_component(scripting_runtime_dir "${HELIX_SCRIPTING_RUNTIME}" DIRECTORY)
 get_filename_component(scripting_runtime_name "${HELIX_SCRIPTING_RUNTIME}" NAME_WLE)
-set(player_engine_assemblies "${HELIX_CORE_MODULE}" "${HELIX_SCRIPTING_RUNTIME}" "${scripting_runtime_dir}/${scripting_runtime_name}.runtimeconfig.json"
+set(player_engine_assemblies "${HELIX_CORE_MODULE}" ${HELIX_CORE_MODULE_REFERENCES} "${HELIX_SCRIPTING_RUNTIME}" "${scripting_runtime_dir}/${scripting_runtime_name}.runtimeconfig.json"
     "${scripting_runtime_dir}/${scripting_runtime_name}.deps.json")
 
 # A data folder to run: copied next to the player as <name>_Data (Data/ on the Web, the assets' Data/ in the APK).

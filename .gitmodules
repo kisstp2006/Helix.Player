@@ -58,3 +58,6 @@
 [submodule "External/Helix.ScriptCore"]
 	path = External/Helix.ScriptCore
 	url = https://github.com/kisstp2006/Helix.ScriptCore
+[submodule "External/Helix.Mathematics"]
+	path = External/Helix.Mathematics
+	url = https://github.com/kisstp2006/Helix.Mathematics
