@@ -3,6 +3,9 @@
 #include <Helix/Core/Logging/Log.h>
 #include <Helix/Engine/Script/ScriptRuntime.h>
 #include <Helix/Platform/IO/FileSystem.h>
+#if HX_PLATFORM_ANDROID
+#include <Helix/Platform/Window/Android.h>
+#endif
 #include <Helix/Scripting/Host/DotnetHost.h>
 #include <Helix/Scripting/Types/Type.h>
 
@@ -93,27 +96,81 @@ namespace helix::player
         }
     }
 
+    namespace
+    {
+        // Where the C# side comes from: the game's assemblies, the engine's, and how the runtime starts.
+        struct ManagedSetup
+        {
+            String gameFolder;
+            String engineFolder;
+            String runtime;
+            String nativeFolder;
+            String frameworkFolder;
+            // The engine's assemblies are files of engineFolder (the Web's app carries them instead).
+            bool engineFiles = true;
+        };
+
+        bool Prepare(StringView dataRoot, ManagedSetup& out)
+        {
+#if HX_PLATFORM_ANDROID
+            // The APK's assets: the runtime's framework and the engine's assemblies in Managed/, the game's in the
+            // data folder's Managed/; the runtime takes files, so they are extracted to the application's files once
+            // per installed version. The runtime's native libraries are the APK's.
+            String files(platform::android::FilesDirectory());
+            out.engineFolder = platform::JoinPath(files, kManagedFolder);
+            out.gameFolder = platform::JoinPath(platform::JoinPath(files, dataRoot), kManagedFolder);
+            if (!platform::android::ExtractAssets(kManagedFolder, out.engineFolder) ||
+                !platform::android::ExtractAssets(platform::JoinPath(dataRoot, kManagedFolder), out.gameFolder))
+            {
+                HX_LOG_ERROR(ScriptsLog, "The managed assemblies could not be extracted to {}.", files);
+                return false;
+            }
+            out.runtime = String("coreclr");
+            out.nativeFolder = String(platform::android::NativeLibraryDirectory());
+            out.frameworkFolder = out.engineFolder;
+#else
+            out.gameFolder = platform::JoinPath(dataRoot, kManagedFolder);
+            out.engineFolder = out.gameFolder;
+            out.engineFiles = !HX_PLATFORM_WEB;
+#endif
+            return true;
+        }
+    }
+
     void PlayerScripts::StartManaged(StringView dataRoot)
     {
-        String folder = platform::JoinPath(dataRoot, kManagedFolder);
+#if HX_PLATFORM_ANDROID
+        Array<String> listed;
+        bool any = false;
+        if (platform::android::ListAssets(platform::JoinPath(dataRoot, kManagedFolder), listed))
+            for (const String& file : listed)
+                any = any || (platform::GetExtension(file) == ".dll" && !IsEngineAssembly(file));
+        if (!any)
+            return;
+#endif
+        ManagedSetup setup;
+        if (!Prepare(dataRoot, setup))
+            return;
         Array<String> game;
-        for (const String& file : FilesOf(folder))
+        for (const String& file : FilesOf(setup.gameFolder))
             if (platform::GetExtension(file) == ".dll" && !IsEngineAssembly(file))
-                game.Push(platform::JoinPath(folder, file));
+                game.Push(platform::JoinPath(setup.gameFolder, file));
         if (game.Empty())
             return;
-#if HX_PLATFORM_WINDOWS || HX_PLATFORM_LINUX
         using namespace scripting;
-        String runtime = platform::JoinPath(folder, kScriptingRuntimeAssembly);
-        String core = platform::JoinPath(folder, kCoreModuleAssembly);
-        if (!platform::FileExists(runtime) || !platform::FileExists(core))
+        String runtime = platform::JoinPath(setup.engineFolder, kScriptingRuntimeAssembly);
+        String core = platform::JoinPath(setup.engineFolder, kCoreModuleAssembly);
+        if (setup.engineFiles && (!platform::FileExists(runtime) || !platform::FileExists(core)))
         {
-            HX_LOG_ERROR(ScriptsLog, "C# scripts need {} and {} in {}.", kScriptingRuntimeAssembly, kCoreModuleAssembly, folder);
+            HX_LOG_ERROR(ScriptsLog, "C# scripts need {} and {} in {}.", kScriptingRuntimeAssembly, kCoreModuleAssembly, setup.engineFolder);
             return;
         }
         String error;
         DotnetHostDesc desc;
         desc.runtimeAssembly = runtime;
+        desc.runtime = setup.runtime;
+        desc.nativeFolder = setup.nativeFolder;
+        desc.frameworkFolder = setup.frameworkFolder;
         if (!DotnetHost::Start(desc, error))
         {
             HX_LOG_ERROR(ScriptsLog, "The .NET runtime did not start: {}", error);
@@ -146,9 +203,6 @@ namespace helix::player
                 HX_LOG_INFO(ScriptsLog, "C# assembly {} loaded: {} script classes.", platform::GetFileName(path), classes);
             }
         }
-#else
-        HX_LOG_WARNING(ScriptsLog, "{} C# assemblies in {}: C# scripts wait for this platform's .NET host.", game.Size(), folder);
-#endif
     }
 
     void PlayerScripts::Stop()
@@ -157,10 +211,8 @@ namespace helix::player
             engine::UnloadGameModule(modules_[i]);
         modules_.Clear();
         assemblies_.Clear();
-#if HX_PLATFORM_WINDOWS || HX_PLATFORM_LINUX
         if (managed_)
             scripting::DotnetHost::Stop();
-#endif
         managed_ = false;
     }
 }

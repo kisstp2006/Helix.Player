@@ -1,9 +1,12 @@
 #include <Support/PlayerRuns.h>
 #include <Support/TestData.h>
 
+#include <Helix/Core/Logging/Log.h>
 #include <Helix/Engine/Script/MonoScript.h>
 #include <Helix/Player/Scripts/PlayerScripts.h>
 #include <Helix/Testing/Test.h>
+
+#include <chrono>
 
 using namespace helix;
 using namespace helix::player;
@@ -11,19 +14,25 @@ using namespace helix::player::testing;
 
 namespace
 {
-#if defined(HELIX_PLAYER_EXECUTABLE) && defined(HELIX_PLAYER_TEST_MODULE)
+#if (defined(HELIX_PLAYER_EXECUTABLE) && defined(HELIX_PLAYER_TEST_MODULE)) || defined(HELIX_PLAYER_WEB_SCRIPTS)
     // A data folder whose scene has a GameObject with a C# script and a C++ script: the engine's assemblies and the
-    // test assembly in Managed/, the test game module in Modules/, the two script assets.
+    // test assembly in Managed/, the test game module in Modules/, the two script assets. On the Web the app carries
+    // the assemblies (Managed/ names the game's) and there is no module.
     struct ScriptedDataFolder
     {
         String root;
 
-        ScriptedDataFolder()
+        // The engine's assemblies: paths joined with | (the build's, ReadyToRun images in release builds).
+        explicit ScriptedDataFolder(StringView engineAssemblies = StringView())
         {
+            (void)engineAssemblies;
             using namespace engine;
             root = platform::JoinPath(platform::TempDirectory(), Format("helix-player-scripts-{}", Guid::Generate().ToString()));
             platform::CreateDirectories(root);
-            StringView assemblies = HELIX_PLAYER_ENGINE_ASSEMBLIES;
+#if defined(HELIX_PLAYER_WEB_SCRIPTS)
+            Write(Format("{}/HelixPlayer.TestScripts.dll", kManagedFolder), "carried by the web app");
+#else
+            StringView assemblies = engineAssemblies.Empty() ? StringView(HELIX_PLAYER_ENGINE_ASSEMBLIES) : engineAssemblies;
             for (usize at = 0; at < assemblies.Size();)
             {
                 usize end = assemblies.Find('|', at);
@@ -34,6 +43,7 @@ namespace
             }
             Copy(HELIX_PLAYER_TEST_SCRIPTS, kManagedFolder);
             Copy(HELIX_PLAYER_TEST_MODULE, kModulesFolder);
+#endif
 
             Guid greeter = Guid::Generate(), spinner = Guid::Generate(), scene = Guid::Generate();
             WriteScript("Scripts/Greeter.asset", "Greeter", "HelixPlayer.TestScripts");
@@ -175,5 +185,105 @@ HX_TEST(PlayerScripts, TheExecutableRunsCSharpAndCppScriptsOfTheDataFolder)
         HX_CHECK(text.Contains(e));
     }
     platform::RemoveFile(log);
+#endif
+}
+
+#if defined(HELIX_PLAYER_READY_TO_RUN)
+namespace
+{
+    // A ReadyToRun image: an assembly whose CLI header names a native header (ManagedNativeHeader, at 0x40 of it).
+    bool IsReadyToRun(StringView path)
+    {
+        Array<u8> pe;
+        if (!platform::ReadFile(path, pe) || pe.Size() < 0x200)
+            return false;
+        auto u16At = [&](usize at) { return at + 2 <= pe.Size() ? u16(pe[at] | (pe[at + 1] << 8)) : u16(0); };
+        auto u32At = [&](usize at) { return at + 4 <= pe.Size() ? u32(pe[at] | (pe[at + 1] << 8) | (pe[at + 2] << 16) | (u32(pe[at + 3]) << 24)) : 0u; };
+        usize header = u32At(0x3C);
+        usize optional = header + 24;
+        bool plus = u16At(optional) == 0x20B;
+        usize directories = optional + (plus ? 112 : 96);
+        u32 cliRva = u32At(directories + 14 * 8);
+        usize sections = optional + u16At(header + 20);
+        for (u32 i = 0; i < u16At(header + 6); i++)
+        {
+            usize s = sections + i * 40;
+            u32 va = u32At(s + 12), size = u32At(s + 16), raw = u32At(s + 20);
+            if (cliRva >= va && cliRva < va + size)
+                return u32At(raw + (cliRva - va) + 0x40) != 0;
+        }
+        return false;
+    }
+
+    // The player executable on a data folder in batch mode: its time to the end, and whether its log has the C#
+    // script's messages.
+    f64 TimedRun(StringView root, bool& scripted)
+    {
+        String log = platform::JoinPath(platform::TempDirectory(), Format("helix-player-{}.log", Guid::Generate().ToString()));
+        const StringView args[] = {"-batchmode", "-nographics", "-frames", "1", "-dataFolder", root, "-logFile", log};
+        auto start = std::chrono::steady_clock::now();
+        i32 code = RunProcess(Span<const StringView>(args, 8));
+        f64 ms = std::chrono::duration<f64, std::milli>(std::chrono::steady_clock::now() - start).count();
+        Array<u8> bytes;
+        platform::ReadFile(log, bytes);
+        StringView text(reinterpret_cast<const char*>(bytes.Data()), bytes.Size());
+        scripted = code == 0 && text.Contains("Greeter.Start");
+        platform::RemoveFile(log);
+        return ms;
+    }
+}
+#endif
+
+HX_TEST(PlayerScripts, TheReleasePlayerTakesReadyToRunImages)
+{
+#if defined(HELIX_PLAYER_READY_TO_RUN) && defined(HELIX_PLAYER_EXECUTABLE) && defined(HELIX_PLAYER_TEST_MODULE)
+    ScriptedDataFolder r2r(HELIX_PLAYER_ENGINE_ASSEMBLIES), il(HELIX_PLAYER_IL_ASSEMBLIES);
+    String core = platform::JoinPath(platform::JoinPath(r2r.root, kManagedFolder), kCoreModuleAssembly);
+    String coreIl = platform::JoinPath(platform::JoinPath(il.root, kManagedFolder), kCoreModuleAssembly);
+    HX_CHECK(IsReadyToRun(core) && !IsReadyToRun(coreIl));
+    // Start up to the end of one frame with the C# scripts running, the best of three runs each.
+    f64 best[2] = {1e9, 1e9};
+    for (int round = 0; round < 3; round++)
+        for (int k = 0; k < 2; k++)
+        {
+            bool scripted = false;
+            f64 ms = TimedRun(k == 0 ? r2r.root : il.root, scripted);
+            HX_CHECK(scripted);
+            best[k] = ms < best[k] ? ms : best[k];
+        }
+    std::printf("    player start to the first frame with C# scripts: %.0f ms with ReadyToRun, %.0f ms with IL only\n", best[0], best[1]);
+#endif
+}
+
+#if defined(HELIX_PLAYER_WEB_SCRIPTS)
+namespace
+{
+    void CollectLog(const LogMessage& message, void* user) { static_cast<Array<String>*>(user)->Push(String(message.text)); }
+}
+#endif
+
+HX_TEST(PlayerScripts, TheWebPlayerRunsCSharpScriptsOfTheDataFolder)
+{
+#if defined(HELIX_PLAYER_WEB_SCRIPTS)
+    // The player in this process (the Web's), its C# side started by the browser runtime of the test app.
+    ScriptedDataFolder data;
+    Array<String> lines;
+    AddLogSink(&CollectLog, &lines);
+    const StringView args[] = {"-batchmode", "-nographics", "-nolog", "-dataFolder", data.root, "-frames", "4"};
+    u64 frames = 0;
+    i32 code = RunFrames(Span<const StringView>(args, 7), frames);
+    RemoveLogSink(&CollectLog, &lines);
+    HX_CHECK(code == 0 && frames == 4);
+    const char* expected[] = {"C# assembly HelixPlayer.TestScripts.dll loaded: 1 script classes.", "Greeter.Awake on Scripted", "Greeter.Start",
+                              "Greeter.OnDestroy"};
+    for (const char* e : expected)
+    {
+        bool found = false;
+        for (const String& l : lines)
+            found = found || StringView(l).Contains(e);
+        if (!found)
+            std::printf("    not in the log: %s\n", e);
+        HX_CHECK(found);
+    }
 #endif
 }

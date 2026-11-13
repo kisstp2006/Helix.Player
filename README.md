@@ -14,7 +14,8 @@ scene and runs every frame through the engine's player loop.
 | `Source/Helix/Player/Log/PlayerLog.h` | `PlayerLog`: the log file or standard output, with optional timestamps |
 | `Source/Helix/Player/Scripts/PlayerScripts.h` | `PlayerScripts`: the data folder's C++ game modules and C# assemblies, `BuildGameModules` |
 | `Source/Helix/Player/Platform/<Os>/PlayerMain*.cpp` | The entry points: `wWinMain` (Windows), `main` (Linux, Web), `HelixMain` with the APK's assets as the data folder (Android) |
-| `Web/Templates/Default.html` | The page: the canvas and the data folder the loader fetches (`Module.helixPreload`) |
+| `Web/Templates/` | The page (`Default.html`, published as `index.html`) and its `main.js`: the data folder fetched by the loader of Helix.Platform, then the .NET runtime started |
+| `Android/CheckApk.cmake` | The packaged APK checked for the .NET runtime (its native libraries, the framework and the engine's assemblies) |
 | `Tests/` | Command line, data folder and player runs on every device (in process and as the executable) against `Tests/Golden`; a data folder with a C# and a C++ script (`Tests/Scripts`) |
 
 ## Data folder
@@ -40,8 +41,13 @@ Scripts load before the first scene, so its GameBehaviours find their classes:
   runtime, the Web links them into the player.
 - `Managed/`: the engine's assemblies (`HelixEngine.CoreModule.dll`, `Helix.Scripting.Runtime.dll` with its
   runtimeconfig) and the game's. A game assembly starts the .NET runtime (`dotnet/` next to the player, else
-  `DOTNET_ROOT`, `HELIX_DOTNET_ROOT` or the installed one), the engine's C# side and the assembly's scripts. Android
-  and the Web get their .NET hosts later.
+  `DOTNET_ROOT`, `HELIX_DOTNET_ROOT` or the installed one), the engine's C# side and the assembly's scripts. Release
+  builds on Windows and Linux put ReadyToRun images of the engine's assemblies there (`HELIX_PLAYER_READY_TO_RUN`,
+  on by default). The APK carries the android-arm64 runtime (its native libraries next to the player, the framework
+  and the engine's assemblies as the assets' `Managed/`), extracted to the application's files once per installed
+  version and started through `coreclr_initialize`. The Web player is a .NET web app with the engine's assemblies
+  (and `-DHELIX_PLAYER_GAME_ASSEMBLIES=<dlls>`) built in; a data folder's own assemblies are listed in
+  `Managed/assemblies.index` for the loader and loaded at run time.
 
 Shutting down destroys the scripts' objects, unloads the modules and stops the C# side.
 
@@ -68,7 +74,7 @@ The reference player's arguments that apply:
 Development arguments of Helix: `-dataFolder <path>`, `-scene <path>` (a scene file, from the catalog or disk),
 `-frames N` (quit after N frames) and `-screenshot <png>` (of the last frame). Other arguments are left for scripts.
 On Android the arguments come from the intent (`am start -n org.helix.player/org.helix.platform.HelixActivity -e args "-frames 100"`),
-on the Web from the address (`HelixPlayer.html?args=-frames%20100`).
+on the Web from the address (`index.html?args=-frames%20100`).
 
 ## The frame
 
@@ -85,8 +91,9 @@ back with the next one.
 What belongs to the system comes from Helix.Platform: one instance per product, waiting for a debugger, keeping the
 screen on, the orientation, and the applications of Android and the Web. On Android `helix_add_android_app` makes
 libHelixPlayer.so an application (its activity runs `HelixMain`, the APK is built with the SDK's tools and carries
-the data folder under its assets' `Data/`); on the Web `helix_add_web_app` makes the page from the template, and the
-loader fetches the data folder before `main`.
+the data folder under its assets' `Data/`); on the Web the player is linked into the .NET runtime's module
+(Helix.Scripting's web apps), published with the page in `helix_player.Web/publish/wwwroot`, and the loader fetches the
+data folder before `main`; its frames run on the browser's loop after `main` returns.
 
 ## Build
 

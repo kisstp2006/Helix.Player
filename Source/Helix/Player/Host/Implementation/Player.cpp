@@ -530,11 +530,12 @@ namespace helix::player
             for (const String& e : errors)
                 HX_LOG_ERROR(PlayerLogChannel, "Command line: {}", e);
 #if HX_PLATFORM_WEB
-        // The browser runs the frames after main returns: the player lives on.
+        // The browser runs the frames after main returns: the player lives on (main returns to the .NET runtime that
+        // called it, which must not be unwound).
         static Run run;
         if (!run.player.Start(options, reader))
             return 1;
-        platform::RunMainLoop(&RunFrame, &run);
+        platform::RunMainLoop(&RunFrame, &run, true);
         return 0;
 #else
         Run run;

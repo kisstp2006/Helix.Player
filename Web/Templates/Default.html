@@ -12,25 +12,8 @@
 </head>
 <body>
   <canvas id="canvas" tabindex="0" oncontextmenu="event.preventDefault()"></canvas>
-  <div id="status"></div>
-  <script>
-    var statusElement = document.getElementById('status');
-    var Module = {
-      canvas: document.getElementById('canvas'),
-      print: function (text) { console.log(text); },
-      printErr: function (text) { console.error(text); statusElement.textContent = text; },
-      setStatus: function (text) { statusElement.textContent = text; },
-      onRuntimeInitialized: function () { statusElement.textContent = ''; },
-      // The data folder next to the page (?data=<URL> replaces it), fetched into /Data before main.
-      helixPreload: {
-        url: 'Data',
-        mount: '/Data',
-        files: ['settings.asset'],
-        lists: ['assets.index'],
-        companions: { '.dll': '.pdb' }
-      }
-    };
-  </script>
-  {{{ SCRIPT }}}
+  <div id="status">Loading</div>
+  <!-- The player is a .NET web app: main.js starts its runtime after the data folder is fetched. -->
+  <script type="module" src="main.js"></script>
 </body>
 </html>
