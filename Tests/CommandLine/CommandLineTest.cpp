@@ -21,14 +21,14 @@ HX_TEST(CommandLine, ReferenceArguments)
     Array<String> errors;
     HX_REQUIRE(Parse({"-batchmode", "-nographics", "-screen-width", "800", "-screen-height", "600", "-screen-fullscreen", "1", "-window-mode",
                       "Exclusive", "-popupwindow", "-monitor", "2", "-logFile", "out.log", "-timestamps", "-force-glcore45", "-force-clamped",
-                      "-force-device-index", "1", "-force-driver-type-warp", "-single-instance", "-parentHWND", "0x1a2b", "delayed",
+                      "-force-device-index", "1", "-force-driver-type-warp", "-force-gfx-direct", "-single-instance", "-parentHWND", "0x1a2b", "delayed",
                       "-wait-for-native-debugger"},
                      o, errors));
     HX_CHECK(errors.Empty());
     HX_CHECK(o.batchMode && o.noGraphics && o.screenWidth == 800 && o.screenHeight == 600 && o.screenFullscreen == 1);
     HX_CHECK(o.windowMode == WindowModeArgument::Exclusive && o.popupWindow && o.monitor == 2);
     HX_CHECK(o.logFileGiven && o.logFile == StringView("out.log") && o.timestamps && !o.noLog);
-    HX_CHECK(o.graphicsApi == GraphicsApi::OpenGL && o.glVersion == 45 && o.forceClamped && o.deviceIndex == 1 && o.warp);
+    HX_CHECK(o.graphicsApi == GraphicsApi::OpenGL && o.glVersion == 45 && o.forceClamped && o.deviceIndex == 1 && o.warp && !o.renderThread);
     HX_CHECK(o.singleInstance && o.parentWindow == 0x1a2b && o.parentDelayed && o.waitForNativeDebugger);
 }
 

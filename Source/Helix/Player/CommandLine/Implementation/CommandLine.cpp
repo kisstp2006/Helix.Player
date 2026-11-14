@@ -161,6 +161,8 @@ namespace helix::player
                  }
              }},
             {"-wait-for-native-debugger", [](Cursor&, StringView, PlayerOptions& o) { o.waitForNativeDebugger = true; }},
+            {"-force-gfx-direct", [](Cursor&, StringView, PlayerOptions& o) { o.renderThread = false; }},
+            {"-force-gfx-mt", [](Cursor&, StringView, PlayerOptions& o) { o.renderThread = true; }},
             {"-dataFolder", [](Cursor& c, StringView n, PlayerOptions& o) { StringInto(c, n, o.dataFolder); }},
             {"-scene", [](Cursor& c, StringView n, PlayerOptions& o) { StringInto(c, n, o.scene); }},
             {"-frames", [](Cursor& c, StringView n, PlayerOptions& o) { IntInto(c, n, 1, 0x7fffffff, o.frames); }},

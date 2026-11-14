@@ -67,6 +67,7 @@ The reference player's arguments that apply:
 | `-nolog`, `-timestamps` | No log; time and thread id before every line |
 | `-force-d3d11`, `-force-glcore[XY]` | The graphics API (Direct3D 11 is the default on Windows, OpenGL elsewhere) |
 | `-force-device-index N`, `-force-driver-type-warp` | The GPU by index; the WARP software rasterizer |
+| `-force-gfx-direct`, `-force-gfx-mt` | No render thread; a render thread (the default where there are threads: it submits a frame while the next is made) |
 | `-single-instance` | One instance; a second one brings the first to the front |
 | `-parentHWND <HWND> [delayed]` | Embedded into another window (Windows) |
 | `-wait-for-native-debugger` | Waits until a native debugger is attached |

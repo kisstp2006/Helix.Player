@@ -218,6 +218,8 @@ namespace helix::player
         desc.warp = options_.warp;
         desc.vsync = !options_.batchMode;
         desc.swapChainDepthFormat = rhi::Format::D24UnormS8Uint;
+        // The render thread submits a frame while the next one is made (the RHI runs inline where there are no threads).
+        desc.threaded = options_.renderThread;
         if (options_.glVersion != 0)
             HX_LOG_INFO(PlayerLogChannel, "-force-glcore{}: the driver's newest core context is used, OpenGL {}.{} or later is needed.", options_.glVersion,
                         options_.glVersion / 10, options_.glVersion % 10);
@@ -229,7 +231,8 @@ namespace helix::player
         }
         deviceWindow_ = desc.window;
         const rhi::DeviceCaps& caps = device_->Caps();
-        HX_LOG_INFO(PlayerLogChannel, "Graphics: {} {}.{} on {}.", BackendName(caps.backend), caps.apiMajor, caps.apiMinor, caps.renderer);
+        HX_LOG_INFO(PlayerLogChannel, "Graphics: {} {}.{} on {}{}.", BackendName(caps.backend), caps.apiMajor, caps.apiMinor, caps.renderer,
+                    device_->Threaded() ? ", render thread" : "");
         Graphics::SetDevice(device_);
         UpdateTarget();
         return true;

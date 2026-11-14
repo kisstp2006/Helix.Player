@@ -42,12 +42,14 @@ namespace helix::player
         bool noLog = false;
         bool timestamps = false;
         // -force-d3d11, -force-glcore[XY] (glVersion XY, 0 when not given), -force-clamped, -force-device-index N,
-        // -force-driver-type-warp.
+        // -force-driver-type-warp; -force-gfx-direct (no render thread), -force-gfx-mt (a render thread, the default
+        // where there are threads).
         GraphicsApi graphicsApi = GraphicsApi::Default;
         i32 glVersion = 0;
         bool forceClamped = false;
         i32 deviceIndex = -1;
         bool warp = false;
+        bool renderThread = true;
         // -single-instance, -parentHWND <HWND> [delayed], -wait-for-native-debugger.
         bool singleInstance = false;
         u64 parentWindow = 0;
