@@ -34,9 +34,9 @@ namespace helix::player
         PlayerScripts(const PlayerScripts&) = delete;
         PlayerScripts& operator=(const PlayerScripts&) = delete;
 
-        // Loads the scripts of the data folder: the modules, then the C# side. A script that does not load is logged;
-        // the player runs on without it.
-        void Start(StringView dataRoot);
+        // Loads the scripts of the data folder: the modules, then the C# side (from managedFolder when given, else the
+        // data folder's Managed/). A script that does not load is logged; the player runs on without it.
+        void Start(StringView dataRoot, StringView managedFolder = {});
         // Unloads the modules and lets go of the C# side (once their objects are gone).
         void Stop();
 
@@ -46,7 +46,7 @@ namespace helix::player
 
     private:
         void LoadModules(StringView dataRoot);
-        void StartManaged(StringView dataRoot);
+        void StartManaged(StringView dataRoot, StringView managedFolder);
 
         Array<String> modules_;
         Array<String> assemblies_;

@@ -61,6 +61,9 @@ namespace helix::player
         String scene;
         i32 frames = 0;
         String screenshot;
+        // For a host that embeds the player (no argument): the folder of the game's C# assemblies and the engine's,
+        // in place of the data folder's Managed/ (a build keeps them out of the data folder it reads in place).
+        String managedFolder;
         // Arguments the player does not take.
         Array<String> other = Array<String>();
     };

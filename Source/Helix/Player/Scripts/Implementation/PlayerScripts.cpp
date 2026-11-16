@@ -56,11 +56,11 @@ namespace helix::player
         }
     }
 
-    void PlayerScripts::Start(StringView dataRoot)
+    void PlayerScripts::Start(StringView dataRoot, StringView managedFolder)
     {
         Stop();
         LoadModules(dataRoot);
-        StartManaged(dataRoot);
+        StartManaged(dataRoot, managedFolder);
     }
 
     void PlayerScripts::LoadModules(StringView dataRoot)
@@ -110,8 +110,14 @@ namespace helix::player
             bool engineFiles = true;
         };
 
-        bool Prepare(StringView dataRoot, ManagedSetup& out)
+        bool Prepare(StringView dataRoot, StringView managedFolder, ManagedSetup& out)
         {
+            if (!managedFolder.Empty() && !HX_PLATFORM_ANDROID && !HX_PLATFORM_WEB)
+            {
+                out.gameFolder = String(managedFolder);
+                out.engineFolder = out.gameFolder;
+                return true;
+            }
 #if HX_PLATFORM_ANDROID
             // The APK's assets: the runtime's framework and the engine's assemblies in Managed/, the game's in the
             // data folder's Managed/; the runtime takes files, so they are extracted to the application's files once
@@ -137,7 +143,7 @@ namespace helix::player
         }
     }
 
-    void PlayerScripts::StartManaged(StringView dataRoot)
+    void PlayerScripts::StartManaged(StringView dataRoot, StringView managedFolder)
     {
 #if HX_PLATFORM_ANDROID
         Array<String> listed;
@@ -149,7 +155,7 @@ namespace helix::player
             return;
 #endif
         ManagedSetup setup;
-        if (!Prepare(dataRoot, setup))
+        if (!Prepare(dataRoot, managedFolder, setup))
             return;
         Array<String> game;
         for (const String& file : FilesOf(setup.gameFolder))

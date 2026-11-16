@@ -4,6 +4,7 @@
 #include <Helix/Engine/Application/Application.h>
 #include <Helix/Engine/GameObject/GameObject.h>
 #include <Helix/Engine/GameObject/Lifecycle.h>
+#include <Helix/Engine/Input/Cursor.h>
 #include <Helix/Engine/Rendering/Graphics.h>
 #include <Helix/Engine/Rendering/ScreenCapture.h>
 #include <Helix/Engine/Scene/SceneManager.h>
@@ -195,7 +196,7 @@ namespace helix::player
         ReportScreen(true);
 
         // The scripts of the data folder (C++ game modules, C# assemblies) before a scene can name them.
-        scripts_.Start(root);
+        scripts_.Start(root, options_.managedFolder.View());
 
         // The scene to run: -scene, else the first of the build.
         if (!options_.scene.Empty())
@@ -445,6 +446,19 @@ namespace helix::player
             window_->SetTextInput(on, x, y, h);
     }
 
+    void Player::ApplyCursor()
+    {
+        // The frame's cursor, once it changed (what the platform cannot show leaves the pointer as it was).
+        const Cursor::State& c = Cursor::Current();
+        if (!window_ || c.version == cursorVersion_)
+            return;
+        cursorVersion_ = c.version;
+        if (c.image)
+            window_->SetCursorImage(Span<const u8>(c.pixels.Data(), c.pixels.Size()), c.width, c.height, c.hotspotX, c.hotspotY);
+        else
+            window_->SetCursor(c.shape);
+    }
+
     bool Player::Frame()
     {
         if (!started_ || quit_)
@@ -492,6 +506,7 @@ namespace helix::player
         frames_++;
         ApplyScreenRequests();
         ApplyTextInput();
+        ApplyCursor();
         if (!running)
         {
             quit_ = true;
@@ -522,6 +537,8 @@ namespace helix::player
         Graphics::SetTarget({});
         Screen::Reset();
         InputFeed::Reset();
+        Cursor::Reset();
+        cursorVersion_ = ~0ull;
         Time::Reset();
         Application::Reset();
         if (jobs_)

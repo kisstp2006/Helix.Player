@@ -48,6 +48,7 @@ namespace helix::player
         void HandleEvents();
         // The input method on while the frame asked for it (InputFeed::RequestTextInput), at its caret.
         void ApplyTextInput();
+        void ApplyCursor();
 
         PlayerOptions options_;
         DataFolder data_;
@@ -61,6 +62,8 @@ namespace helix::player
         u32 width_ = 0, height_ = 0;
         Array<platform::Event> events_;
         Array<engine::InputEvent> inputEvents_;
+        // The engine's cursor last given to the window (none yet: the window's own arrow).
+        u64 cursorVersion_ = ~0ull;
         Array<platform::DisplayInfo> displays_;
         Array<platform::DisplayMode> modes_;
         u32 modesDisplay_ = ~0u;

@@ -84,7 +84,8 @@ goes to its input feed, where the UI and the game read it; the size of the windo
 depth buffer, or the batch mode textures); the Screen gets the size, mode, displays and window position; then
 `Application::RunFrame` runs the player loop, which draws in `FinishFrameRendering`, and the frame is presented.
 What scripts asked of the Screen (resolution, full screen mode, window moves, sleep timeout, orientation) is applied
-at the end of the frame, and the input method is on while a focused text element asks for it. Without focus the frames pause unless `runInBackground` is set (PlayerSettings, on by
+at the end of the frame, the input method is on while a focused text element asks for it, and the engine's cursor
+(Cursor.SetCursor, the UI's) goes to the window when it changes. Without focus the frames pause unless `runInBackground` is set (PlayerSettings, on by
 default). On Android the graphics device follows the activity's surface: it goes when the surface goes and comes
 back with the next one.
 
