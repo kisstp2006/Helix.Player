@@ -420,10 +420,29 @@ namespace helix::player
                 displaysDirty_ = true;
                 break;
             default:
-                // Input goes to the input system once it exists.
                 break;
             }
         }
+        // The input to the engine, where the UI and the game read it (none is taken away).
+        inputEvents_.Clear();
+        f64 now = Time::realtimeSinceStartupAsDouble();
+        for (const platform::Event& e : events_)
+            if (u8(e.type) >= u8(platform::EventType::KeyDown))
+            {
+                InputEvent ie;
+                ie.event = e;
+                ie.time = now;
+                inputEvents_.Push(ie);
+            }
+        InputFeed::SetFrame(Span<const InputEvent>(inputEvents_.Data(), inputEvents_.Size()), window_->Composition());
+    }
+
+    void Player::ApplyTextInput()
+    {
+        i32 x = 0, y = 0, h = 0;
+        bool on = InputFeed::TakeTextInputRequest(x, y, h);
+        if (window_)
+            window_->SetTextInput(on, x, y, h);
     }
 
     bool Player::Frame()
@@ -472,6 +491,7 @@ namespace helix::player
         }
         frames_++;
         ApplyScreenRequests();
+        ApplyTextInput();
         if (!running)
         {
             quit_ = true;
@@ -501,6 +521,7 @@ namespace helix::player
         Shader::Globals().Clear();
         Graphics::SetTarget({});
         Screen::Reset();
+        InputFeed::Reset();
         Time::Reset();
         Application::Reset();
         if (jobs_)

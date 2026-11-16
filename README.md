@@ -79,11 +79,12 @@ on the Web from the address (`index.html?args=-frames%20100`).
 
 ## The frame
 
-Events go to the engine (quit, focus); the size of the window sets the default render target (the swap chain with its
+Events go to the engine (quit, focus); the input (keys, text, mouse, wheel, touches, the input method's composition)
+goes to its input feed, where the UI and the game read it; the size of the window sets the default render target (the swap chain with its
 depth buffer, or the batch mode textures); the Screen gets the size, mode, displays and window position; then
 `Application::RunFrame` runs the player loop, which draws in `FinishFrameRendering`, and the frame is presented.
 What scripts asked of the Screen (resolution, full screen mode, window moves, sleep timeout, orientation) is applied
-at the end of the frame. Without focus the frames pause unless `runInBackground` is set (PlayerSettings, on by
+at the end of the frame, and the input method is on while a focused text element asks for it. Without focus the frames pause unless `runInBackground` is set (PlayerSettings, on by
 default). On Android the graphics device follows the activity's surface: it goes when the surface goes and comes
 back with the next one.
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Helix/Engine/Asset/Asset.h>
+#include <Helix/Engine/Input/InputFeed.h>
 #include <Helix/Player/CommandLine/CommandLine.h>
 #include <Helix/Player/Data/DataFolder.h>
 #include <Helix/Player/Log/PlayerLog.h>
@@ -45,6 +46,8 @@ namespace helix::player
         void ReportScreen(bool displaysChanged);
         void ApplyScreenRequests();
         void HandleEvents();
+        // The input method on while the frame asked for it (InputFeed::RequestTextInput), at its caret.
+        void ApplyTextInput();
 
         PlayerOptions options_;
         DataFolder data_;
@@ -57,6 +60,7 @@ namespace helix::player
         rhi::TextureHandle color_, depth_;
         u32 width_ = 0, height_ = 0;
         Array<platform::Event> events_;
+        Array<engine::InputEvent> inputEvents_;
         Array<platform::DisplayInfo> displays_;
         Array<platform::DisplayMode> modes_;
         u32 modesDisplay_ = ~0u;
