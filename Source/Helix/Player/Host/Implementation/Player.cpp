@@ -5,6 +5,7 @@
 #include <Helix/Engine/GameObject/GameObject.h>
 #include <Helix/Engine/GameObject/Lifecycle.h>
 #include <Helix/Engine/Input/Cursor.h>
+#include <Helix/Engine/Input/GUIUtility.h>
 #include <Helix/Engine/Rendering/Graphics.h>
 #include <Helix/Engine/Rendering/ScreenCapture.h>
 #include <Helix/Engine/Scene/SceneManager.h>
@@ -177,6 +178,9 @@ namespace helix::player
                 HX_LOG_ERROR(PlayerLogChannel, "The window could not be created.");
                 return false;
             }
+            // The scripts' clipboard (GUIUtility.systemCopyBuffer) is the window's.
+            GUIUtility::SetClipboardHost({[](void* w) { return static_cast<platform::Window*>(w)->GetClipboardText(); },
+                                          [](void* w, StringView text) { return static_cast<platform::Window*>(w)->SetClipboardText(text); }, window_});
         }
         else
         {
@@ -523,6 +527,7 @@ namespace helix::player
         DestroyDevice();
         if (window_)
         {
+            GUIUtility::SetClipboardHost({});
             platform::Window::Destroy(window_);
             window_ = nullptr;
         }
