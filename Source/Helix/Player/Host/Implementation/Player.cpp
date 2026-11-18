@@ -577,7 +577,8 @@ namespace helix::player
         desc.height = d.height;
         desc.x = d.x;
         desc.y = d.y;
-        desc.customFrame = d.customFrame;
+        desc.customFrame = d.customFrame && d.decorated;
+        desc.decorated = d.decorated;
         desc.owner = window_->GetNativeHandle().window;
         DisplayState state;
         state.systemWidth = state.renderingWidth = d.width;

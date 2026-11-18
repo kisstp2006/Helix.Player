@@ -47,6 +47,8 @@ namespace helix::player
             StringView title = "Helix";
             i32 x = 0, y = 0, width = 400, height = 300;
             bool customFrame = true;
+            // False: no frame at all (a popup).
+            bool decorated = true;
         };
         i32 OpenToolWindow(const ToolWindowDesc& desc);
         void CloseToolWindow(i32 display);
