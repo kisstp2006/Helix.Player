@@ -10,7 +10,7 @@ scene and runs every frame through the engine's player loop.
 |---|---|
 | `Source/Helix/Player/CommandLine/CommandLine.h` | `PlayerOptions`, `ParseCommandLine`: the player's arguments |
 | `Source/Helix/Player/Data/DataFolder.h` | `DataFolder` (index, settings, scenes), `DefaultDataFolder`, `PlayerSceneSource` |
-| `Source/Helix/Player/Host/Player.h` | `Player` (`Start`, `Frame`, `Shutdown`), `RunPlayer` |
+| `Source/Helix/Player/Host/Player.h` | `Player` (`Start`, `Frame`, `Shutdown`; the windows of the other displays: opened by `Display.Activate`, and tool windows of a host with `OpenToolWindow`), `RunPlayer` |
 | `Source/Helix/Player/Log/PlayerLog.h` | `PlayerLog`: the log file or standard output, with optional timestamps |
 | `Source/Helix/Player/Scripts/PlayerScripts.h` | `PlayerScripts`: the data folder's C++ game modules and C# assemblies, `BuildGameModules` |
 | `Source/Helix/Player/Platform/<Os>/PlayerMain*.cpp` | The entry points: `wWinMain` (Windows), `main` (Linux, Web), `HelixMain` with the APK's assets as the data folder (Android) |

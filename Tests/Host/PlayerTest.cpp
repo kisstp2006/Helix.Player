@@ -5,6 +5,7 @@
 #include <Helix/Engine/Application/Application.h>
 #include <Helix/Engine/Rendering/Graphics.h>
 #include <Helix/Engine/Scene/SceneManager.h>
+#include <Helix/Engine/Screen/Display.h>
 #include <Helix/Engine/Screen/Screen.h>
 #include <Helix/Image/Codecs/Png.h>
 #include <Helix/Player/Host/Player.h>
@@ -148,4 +149,42 @@ HX_TEST(Player, ScreenRequestsReachTheWindow)
     HX_CHECK(!player.Frame() && player.ExitCode() == 0);
     player.Shutdown();
 #endif
+}
+
+// A tool's window (an editor's floating window): a display of its own with the device's swap chain of it, its size
+// and desktop place; frames present it; closed, its display goes.
+HX_TEST(Player, ToolWindowsAreDisplaysOfTheirOwn)
+{
+    if (!platform::Window::IsSupported())
+        return;
+    TestDataFolder data;
+    const StringView args[] = {"-nolog", "-dataFolder", data.root, "-screen-width", "400", "-screen-height", "240"};
+    PlayerOptions options;
+    Array<String> errors;
+    HX_REQUIRE(ParseCommandLine(Span<const StringView>(args, 7), options, errors));
+    Player player;
+    HX_REQUIRE(player.Start(options));
+    HX_REQUIRE(player.Frame());
+    i32 monitors = engine::Displays::Count();
+    i32 display = player.OpenToolWindow({.title = "tool", .x = 200, .y = 160, .width = 300, .height = 200});
+    HX_REQUIRE(display > 0);
+    HX_CHECK(display >= monitors);
+    HX_CHECK(player.DisplayWindow(display) != nullptr && player.DisplayWindow(0) == player.Window());
+    for (int i = 0; i < 3; i++)
+        HX_REQUIRE(player.Frame());
+    const engine::DisplayState& state = engine::Displays::Get(display);
+    HX_CHECK(state.active && state.swapChain.IsValid());
+    HX_CHECK(state.systemWidth == 300 && state.systemHeight == 200);
+    HX_CHECK(state.x == 200 && state.y == 160);
+    // Moved and sized through the engine (Display.SetParams).
+    engine::DisplayNative::SetParams(display, 320, 220, 240, 180);
+    HX_REQUIRE(player.Frame());
+    HX_CHECK(engine::Displays::Get(display).systemWidth == 320 && engine::Displays::Get(display).x == 240);
+    player.CloseToolWindow(display);
+    HX_REQUIRE(player.Frame());
+    HX_CHECK(!engine::Displays::Get(display).active && player.DisplayWindow(display) == nullptr);
+    engine::Application::Quit(0);
+    HX_CHECK(!player.Frame() && player.ExitCode() == 0);
+    player.Shutdown();
+    HX_CHECK(engine::Displays::Count() == 1);
 }

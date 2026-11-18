@@ -9,6 +9,7 @@
 #include <Helix/Engine/Rendering/Graphics.h>
 #include <Helix/Engine/Rendering/ScreenCapture.h>
 #include <Helix/Engine/Scene/SceneManager.h>
+#include <Helix/Engine/Screen/Display.h>
 #include <Helix/Engine/Screen/Screen.h>
 #include <Helix/Engine/Shader/Shader.h>
 #include <Helix/Engine/Time/Time.h>
@@ -179,6 +180,8 @@ namespace helix::player
                 HX_LOG_ERROR(PlayerLogChannel, "The window could not be created.");
                 return false;
             }
+            // The other displays open their windows through the player (Display.Activate, the tools' windows).
+            Displays::SetHost(&PlaceDisplay, this);
             // The scripts' clipboard (GuiUtility.systemCopyBuffer, the text fields) is the window's.
             SystemClipboard::SetHost({[](void* w) { return static_cast<platform::Window*>(w)->GetClipboardText(); },
                                           [](void* w, StringView text) { return static_cast<platform::Window*>(w)->SetClipboardText(text); }, window_});
@@ -241,6 +244,9 @@ namespace helix::player
                     device_->Threaded() ? ", render thread" : "");
         Graphics::SetDevice(device_);
         UpdateTarget();
+        for (ExtraWindow& w : extraWindows_)
+            w.chain = device_->CreateSwapChain({.window = w.window->GetNativeHandle(), .vsync = false});
+        UpdateDisplayWindows();
         return true;
     }
 
@@ -250,6 +256,12 @@ namespace helix::player
             return;
         device_->WaitIdle();
         Graphics::SetDevice(nullptr);
+        for (ExtraWindow& w : extraWindows_)
+            if (w.chain.IsValid())
+            {
+                device_->Destroy(w.chain);
+                w.chain = {};
+            }
         device_->Destroy(color_);
         device_->Destroy(depth_);
         color_ = {};
@@ -313,6 +325,9 @@ namespace helix::player
             modesDisplay_ = display;
             displaysDirty_ = false;
         }
+        // The monitors are displays (the tools' windows come after them).
+        if (i32(displays_.Size()) > Displays::Count() && extraWindows_.Empty())
+            Displays::SetCount(i32(displays_.Size()));
         ScreenReport r;
         r.width = i32(width_);
         r.height = i32(height_);
@@ -420,7 +435,8 @@ namespace helix::player
                 break;
             case platform::EventType::WindowFocus:
             case platform::EventType::WindowBlur:
-                Application::SetFocused(e.type == platform::EventType::WindowFocus);
+                if (extraWindows_.Empty())
+                    Application::SetFocused(e.type == platform::EventType::WindowFocus);
                 break;
             case platform::EventType::WindowResize:
                 displaysDirty_ = true;
@@ -440,6 +456,37 @@ namespace helix::player
                 ie.time = now;
                 inputEvents_.Push(ie);
             }
+        // The other displays' windows: their input tells their display; a window's focus is the application's while
+        // any of its windows has it.
+        bool focusChanged = false;
+        for (ExtraWindow& w : extraWindows_)
+        {
+            extraEvents_.Clear();
+            w.window->PollEvents(extraEvents_);
+            for (const platform::Event& e : extraEvents_)
+            {
+                if (e.type == platform::EventType::WindowFocus || e.type == platform::EventType::WindowBlur)
+                    focusChanged = true;
+                if (u8(e.type) >= u8(platform::EventType::KeyDown))
+                {
+                    InputEvent ie;
+                    ie.event = e;
+                    ie.time = now;
+                    ie.display = w.display;
+                    inputEvents_.Push(ie);
+                }
+            }
+        }
+        for (const platform::Event& e : events_)
+            focusChanged = focusChanged || e.type == platform::EventType::WindowFocus || e.type == platform::EventType::WindowBlur;
+        if (focusChanged && !extraWindows_.Empty())
+        {
+            bool any = window_->HasFocus();
+            for (const ExtraWindow& w : extraWindows_)
+                any = any || w.window->HasFocus();
+            Application::SetFocused(any);
+        }
+        UpdateDisplayWindows();
         InputFeed::SetFrame(Span<const InputEvent>(inputEvents_.Data(), inputEvents_.Size()), window_->Composition());
     }
 
@@ -462,6 +509,156 @@ namespace helix::player
             window_->SetCursorImage(Span<const u8>(c.pixels.Data(), c.pixels.Size()), c.width, c.height, c.hotspotX, c.hotspotY);
         else
             window_->SetCursor(c.shape);
+    }
+
+    // ------------------------------------------------------------------------------------------- the displays
+
+    bool Player::PlaceDisplay(void* user, i32 index, i32 width, i32 height, i32 x, i32 y)
+    {
+        auto* p = static_cast<Player*>(user);
+        if (!p->window_ || index <= 0)
+            return false;
+        for (ExtraWindow& w : p->extraWindows_)
+            if (w.display == index)
+            {
+                if (width > 0 && height > 0)
+                    w.window->SetSize(width, height);
+                if (x != Displays::kNoPlace && y != Displays::kNoPlace)
+                    w.window->SetPosition(x, y);
+                p->UpdateDisplayWindows();
+                return true;
+            }
+        // A game display: a window on its monitor (the monitor's work area unless a size is given).
+        platform::WindowDesc desc;
+        String title = Format("{} {}", Application::productName(), index + 1);
+        desc.title = title.View();
+        desc.display = u32(index);
+        desc.width = width > 0 ? width : 1280;
+        desc.height = height > 0 ? height : 720;
+        if (usize(index) < p->displays_.Size() && width <= 0)
+        {
+            desc.width = p->displays_[usize(index)].workWidth;
+            desc.height = p->displays_[usize(index)].workHeight;
+        }
+        if (x != Displays::kNoPlace && y != Displays::kNoPlace)
+        {
+            desc.x = x;
+            desc.y = y;
+        }
+        return p->OpenDisplayWindow(index, desc, false);
+    }
+
+    bool Player::OpenDisplayWindow(i32 display, const platform::WindowDesc& desc, bool tool)
+    {
+        platform::Window* window = platform::Window::Create(desc);
+        if (!window)
+        {
+            HX_LOG_ERROR(PlayerLogChannel, "The window of display {} did not open.", display);
+            return false;
+        }
+        ExtraWindow w;
+        w.display = display;
+        w.window = window;
+        w.tool = tool;
+        if (device_)
+            w.chain = device_->CreateSwapChain({.window = window->GetNativeHandle(), .vsync = false});
+        extraWindows_.Push(w);
+        UpdateDisplayWindows();
+        return true;
+    }
+
+    i32 Player::OpenToolWindow(const ToolWindowDesc& d)
+    {
+        if (!window_)
+            return -1;
+        platform::WindowDesc desc;
+        desc.title = d.title;
+        desc.width = d.width;
+        desc.height = d.height;
+        desc.x = d.x;
+        desc.y = d.y;
+        desc.customFrame = d.customFrame;
+        desc.owner = window_->GetNativeHandle().window;
+        DisplayState state;
+        state.systemWidth = state.renderingWidth = d.width;
+        state.systemHeight = state.renderingHeight = d.height;
+        i32 display = Displays::Add(state);
+        if (!OpenDisplayWindow(display, desc, true))
+        {
+            Displays::Remove(display);
+            return -1;
+        }
+        return display;
+    }
+
+    void Player::CloseToolWindow(i32 display)
+    {
+        for (usize i = 0; i < extraWindows_.Size(); i++)
+            if (extraWindows_[i].display == display && extraWindows_[i].tool)
+            {
+                CloseDisplayWindow(i);
+                return;
+            }
+    }
+
+    platform::Window* Player::DisplayWindow(i32 display) const
+    {
+        if (display == 0)
+            return window_;
+        for (const ExtraWindow& w : extraWindows_)
+            if (w.display == display)
+                return w.window;
+        return nullptr;
+    }
+
+    void Player::CloseDisplayWindow(usize at)
+    {
+        ExtraWindow w = extraWindows_[at];
+        extraWindows_.RemoveAt(at);
+        if (device_ && w.chain.IsValid())
+        {
+            device_->WaitIdle();
+            device_->Destroy(w.chain);
+        }
+        platform::Window::Destroy(w.window);
+        if (w.tool)
+            Displays::Remove(w.display);
+        else
+            Displays::Set(w.display, DisplayState());
+    }
+
+    // The displays' states from their windows: the swap chains follow the windows' sizes.
+    void Player::UpdateDisplayWindows()
+    {
+        for (ExtraWindow& w : extraWindows_)
+        {
+            i32 fw = 0, fh = 0, x = 0, y = 0;
+            w.window->GetFramebufferSize(fw, fh);
+            w.window->GetPosition(x, y);
+            const DisplayState& was = Displays::Get(w.display);
+            if (device_ && w.chain.IsValid() && (fw != was.systemWidth || fh != was.systemHeight) && fw > 0 && fh > 0)
+                device_->Resize(w.chain, u32(fw), u32(fh));
+            DisplayState state;
+            state.active = true;
+            state.swapChain = w.chain;
+            state.systemWidth = fw;
+            state.systemHeight = fh;
+            state.renderingWidth = was.renderingWidth > 0 && was.active ? was.renderingWidth : fw;
+            state.renderingHeight = was.renderingHeight > 0 && was.active ? was.renderingHeight : fh;
+            state.x = x;
+            state.y = y;
+            Displays::Set(w.display, state);
+        }
+        // The main window's place too (RelativeMouseAt, the tools' drags between windows).
+        if (window_)
+        {
+            DisplayState main = Displays::Get(0);
+            window_->GetPosition(main.x, main.y);
+            main.systemWidth = main.renderingWidth = i32(width_);
+            main.systemHeight = main.renderingHeight = i32(height_);
+            main.active = true;
+            Displays::Set(0, main);
+        }
     }
 
     bool Player::Frame()
@@ -505,6 +702,9 @@ namespace helix::player
         if (drawing)
         {
             device_->EndFrame();
+            for (const ExtraWindow& w : extraWindows_)
+                if (w.chain.IsValid())
+                    device_->Present(w.chain);
             if (window_)
                 device_->Present();
         }
@@ -526,6 +726,10 @@ namespace helix::player
             return;
         started_ = false;
         DestroyDevice();
+        while (!extraWindows_.Empty())
+            CloseDisplayWindow(extraWindows_.Size() - 1);
+        Displays::SetHost(nullptr, nullptr);
+        Displays::SetCount(1);
         if (window_)
         {
             SystemClipboard::SetHost({});
