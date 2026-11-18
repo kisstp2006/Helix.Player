@@ -64,6 +64,9 @@ namespace helix::player
         // For a host that embeds the player (no argument): the folder of the game's C# assemblies and the engine's,
         // in place of the data folder's Managed/ (a build keeps them out of the data folder it reads in place).
         String managedFolder;
+        // For a host that draws the window's frame itself (the editor's title bar; no argument): the window has a frame of
+        // the application's own (platform::WindowDesc::customFrame), its caption named by the host's hit test.
+        bool customFrame = false;
         // Arguments the player does not take.
         Array<String> other = Array<String>();
     };

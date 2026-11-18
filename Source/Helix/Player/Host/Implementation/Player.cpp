@@ -166,6 +166,7 @@ namespace helix::player
             desc.width = options_.screenWidth > 0 ? options_.screenWidth : kDefaultWidth;
             desc.height = options_.screenHeight > 0 ? options_.screenHeight : kDefaultHeight;
             desc.decorated = !options_.popupWindow;
+            desc.customFrame = options_.customFrame;
             desc.display = options_.monitor > 0 ? u32(options_.monitor - 1) : 0;
             desc.parent = reinterpret_cast<void*>(uptr(options_.parentWindow));
             if (options_.screenFullscreen == 1)
